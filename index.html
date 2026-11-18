@@ -1,0 +1,594 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0d1117">
+  <meta name="description" content="TaskBoard — quadro Kanban estático com armazenamento local no navegador.">
+  <title>TaskBoard — Kanban</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <style>
+    :root{color-scheme:dark;--app-bg:#0d1117;--surface:#161b22;--surface-2:#1c232d;--surface-3:#222b36;--border:#303a46;--text:#e6edf3;--muted:#8b949e;--accent:#2f81f7;--success:#3fb950;--danger:#f85149;--column-width:320px}
+    *{box-sizing:border-box}body{min-height:100vh;margin:0;color:var(--text);background:radial-gradient(ellipse at 15% 0%,rgba(47,129,247,.09),transparent 34rem),var(--app-bg);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    [hidden]{display:none!important}.app-navbar{min-height:68px;background:rgba(13,17,23,.94);border-bottom:1px solid var(--border);backdrop-filter:blur(14px)}
+    .brand-mark{display:inline-grid;width:34px;height:34px;place-items:center;color:#fff;border-radius:10px;background:linear-gradient(145deg,#388bfd,#8957e5)}.brand-name{font-weight:700;letter-spacing:-.035em}.navbar-actions{gap:.45rem}.page-shell{max-width:1800px;margin:0 auto;padding:34px 28px 42px}
+    .eyebrow{color:#58a6ff;font-size:.72rem;font-weight:700;letter-spacing:.13em;text-transform:uppercase}.page-title{margin:.3rem 0 .35rem;font-size:clamp(1.65rem,3vw,2.2rem);font-weight:700;letter-spacing:-.045em}.page-subtitle{color:var(--muted);margin:0;font-size:.94rem}
+    .board-toolbar{display:flex;align-items:center;gap:.65rem;margin:26px 0 16px}.toolbar-spacer{flex:1}.board-hint{color:var(--muted);font-size:.8rem;white-space:nowrap}
+    .btn-primary{--bs-btn-bg:#238636;--bs-btn-border-color:#238636;--bs-btn-hover-bg:#2ea043;--bs-btn-hover-border-color:#2ea043;--bs-btn-active-bg:#238636;--bs-btn-active-border-color:#238636;font-weight:600}
+    .btn-outline-secondary{--bs-btn-color:#c9d1d9;--bs-btn-border-color:#454f5b;--bs-btn-hover-bg:#252d37;--bs-btn-hover-border-color:#596675;--bs-btn-hover-color:#fff;--bs-btn-active-bg:#252d37;--bs-btn-active-border-color:#596675}
+    .btn-quiet{color:var(--muted);border:1px solid transparent;background:transparent}.btn-quiet:hover{color:var(--text);background:var(--surface-3);border-color:var(--border)}.btn-sm{--bs-btn-padding-y:.42rem;--bs-btn-padding-x:.72rem}
+    .board-scroller{width:100%;overflow-x:auto;overflow-y:hidden;padding:2px 2px 18px;scrollbar-color:#394553 #151b23;scrollbar-width:thin}.board-scroller::-webkit-scrollbar{height:10px}.board-scroller::-webkit-scrollbar-track{background:#151b23;border-radius:20px}.board-scroller::-webkit-scrollbar-thumb{background:#394553;border:2px solid #151b23;border-radius:20px}
+    .board-grid{display:flex;align-items:flex-start;gap:16px;min-height:250px;width:max-content}.kanban-column{display:flex;flex-direction:column;width:var(--column-width);max-height:calc(100vh - 300px);min-height:245px;border:1px solid var(--border);border-radius:13px;background:rgba(22,27,34,.94);box-shadow:0 8px 28px rgba(0,0,0,.12);transition:border-color .16s ease,background .16s ease}.kanban-column.is-over{border-color:rgba(88,166,255,.75);background:rgba(31,48,67,.92)}
+    .column-header{display:flex;align-items:center;gap:9px;min-height:58px;padding:12px 13px 10px 15px;border-bottom:1px solid rgba(48,58,70,.75)}.column-dot{flex:0 0 9px;width:9px;height:9px;border-radius:50%}.column-name{overflow:hidden;color:#e6edf3;font-size:.91rem;font-weight:650;text-overflow:ellipsis;white-space:nowrap}.column-count{display:inline-grid;min-width:23px;height:22px;padding:0 6px;place-items:center;color:#aeb8c4;border:1px solid #35404c;border-radius:7px;background:#202833;font-size:.72rem;font-weight:650}.column-header-actions{margin-left:auto;display:flex;gap:2px}.column-header-actions .btn{padding:3px 6px;color:#778391}.column-header-actions .btn:hover{color:#ff7b72;background:rgba(248,81,73,.1)}
+    .card-list{flex:1;min-height:145px;overflow-y:auto;padding:11px 10px 5px;scrollbar-color:#394553 transparent;scrollbar-width:thin}.card-list.drag-active{background:rgba(47,129,247,.055)}.kanban-card{position:relative;margin-bottom:9px;padding:12px 12px 11px;border:1px solid #303a46;border-radius:10px;background:#202833;box-shadow:0 3px 8px rgba(0,0,0,.13);cursor:grab;transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease,opacity .15s ease}.kanban-card:hover{border-color:#506174;box-shadow:0 5px 14px rgba(0,0,0,.2);transform:translateY(-1px)}.kanban-card:active{cursor:grabbing}.kanban-card.dragging{opacity:.38;border-style:dashed}.kanban-card.drag-before{box-shadow:0 -3px 0 #58a6ff}.kanban-card.drag-after{box-shadow:0 3px 0 #58a6ff}
+    .card-title{margin:0 54px 5px 0;color:#e6edf3;font-size:.88rem;font-weight:650;line-height:1.4;overflow-wrap:anywhere}.card-description{margin:0;color:#9ba7b4;font-size:.79rem;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}.card-actions{position:absolute;top:6px;right:6px;display:flex;gap:2px}.card-action{display:grid;width:27px;height:27px;place-items:center;color:#8290a0;border:0;border-radius:6px;background:transparent;opacity:0;transition:opacity .15s ease,color .15s ease,background .15s ease}.kanban-card:hover .card-action,.card-action:focus-visible{opacity:1}.card-action.edit-card:hover{color:#79c0ff;background:rgba(47,129,247,.13)}.card-action.delete-card:hover{color:#ff7b72;background:rgba(248,81,73,.12)}
+    .card-footer-meta{display:flex;align-items:center;gap:6px;margin-top:10px;color:#758292;font-size:.69rem;flex-wrap:wrap}.assignee-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 7px;color:#b9c8d8;border:1px solid #3b4b5e;border-radius:20px;background:#1b2a3a;font-size:.68rem}.empty-column{display:grid;min-height:116px;padding:15px;place-items:center;color:#697786;border:1px dashed #35404c;border-radius:9px;font-size:.78rem;text-align:center}.column-add-card{display:flex;align-items:center;gap:7px;width:100%;padding:10px 14px 12px;color:#8b949e;border:0;border-radius:0 0 12px 12px;background:transparent;font-size:.82rem;text-align:left}.column-add-card:hover{color:#e6edf3;background:rgba(139,148,158,.08)}
+    .add-column-tile{display:flex;align-items:center;justify-content:center;gap:9px;width:var(--column-width);min-height:58px;padding:15px;color:#9aa6b2;border:1px dashed #45515e;border-radius:12px;background:rgba(22,27,34,.42);font-size:.87rem;font-weight:600}.add-column-tile:hover{color:#e6edf3;border-color:#58a6ff;background:rgba(47,129,247,.07)}
+    .save-status{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:.76rem}.save-status .bi{color:var(--success)}.save-status.error .bi{color:var(--danger)}.footer-note{margin-top:14px;color:#657180;font-size:.75rem}
+    .modal-content{color:var(--text);border:1px solid #3a4653;border-radius:14px;background:#161b22;box-shadow:0 22px 70px rgba(0,0,0,.45)}.modal-header,.modal-footer{border-color:#303a46}.modal-title{font-size:1.05rem;font-weight:700}.btn-close{filter:invert(1) grayscale(100%) brightness(180%)}.form-label{color:#c9d1d9;font-size:.84rem;font-weight:600}.form-control,.form-select{color:#e6edf3;border-color:#394553;background-color:#0d1117}.form-control:focus,.form-select:focus{color:#e6edf3;border-color:#388bfd;background-color:#0d1117;box-shadow:0 0 0 .2rem rgba(47,129,247,.18)}.form-control::placeholder{color:#687584}.form-select option{color:#e6edf3;background:#161b22}.form-text{color:#8491a0}.alert-custom{color:#c9d1d9;border:1px solid #35404c;background:#1b2430}
+    .toast-container{z-index:1090}.app-toast{color:#e6edf3;border:1px solid #3a4653;background:#1c2632;box-shadow:0 12px 36px rgba(0,0,0,.35)}.app-toast .toast-header{color:#c9d1d9;border-color:#3a4653;background:#202b38}
+    .auth-screen{min-height:100vh;display:grid;place-items:center;padding:28px 16px}.auth-card{width:min(100%,460px);padding:30px;border:1px solid var(--border);border-radius:18px;background:rgba(22,27,34,.96);box-shadow:0 24px 70px rgba(0,0,0,.32)}.auth-logo{display:flex;align-items:center;gap:11px;margin-bottom:22px}.auth-logo .brand-mark{width:42px;height:42px;font-size:1.15rem}.auth-title{font-size:1.45rem;font-weight:750;letter-spacing:-.035em}.auth-subtitle{color:var(--muted);font-size:.9rem}.auth-toggle{color:#79c0ff;text-decoration:none}.auth-toggle:hover{color:#a5d6ff;text-decoration:underline}.config-box{padding:13px 14px;color:#e3c68b;border:1px solid #65512b;border-radius:10px;background:#2b2417;font-size:.83rem;line-height:1.5}.setup-box{padding:18px;border:1px solid var(--border);border-radius:12px;background:var(--surface)}.admin-panel{padding:20px;border:1px solid var(--border);border-radius:14px;background:rgba(22,27,34,.85)}.admin-panel h2{font-size:1.06rem;font-weight:700}.table-dark{--bs-table-bg:transparent;--bs-table-border-color:#303a46;--bs-table-color:#d8e0e8}.invite-code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.09em;font-weight:700;color:#a5d6ff}.company-table-wrap{overflow-x:auto}.role-badge{font-size:.68rem}.auth-error{color:#ff938b;font-size:.85rem}
+    @media(max-width:767.98px){.page-shell{padding:25px 15px 32px}.navbar-actions{gap:.25rem}.navbar-actions .btn{padding:.38rem .52rem;font-size:.78rem}.navbar-actions .btn .action-label{display:none}.board-toolbar{flex-wrap:wrap;margin-top:21px}.board-hint{display:none}.kanban-column,.add-column-tile{width:min(84vw,320px);max-height:none}.card-action{opacity:1}.save-status{width:100%;margin-top:3px}.auth-card{padding:23px 19px}}
+    @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition-duration:.01ms!important}}
+  </style>
+</head>
+<body>
+  <!-- LOGIN / CADASTRO -->
+  <section class="auth-screen" id="authScreen">
+    <div class="auth-card">
+      <div class="auth-logo"><span class="brand-mark"><i class="bi bi-kanban-fill"></i></span><div><div class="auth-title">TaskBoard</div><div class="auth-subtitle">Gestão de tarefas por empresa</div></div></div>
+      <div id="configWarning" class="config-box mb-3"><strong>Modo estático / local.</strong><br>Os dados são guardados apenas neste navegador. Login inicial: <code>admin</code> / <code>admin</code>. Empresas e usuários não são sincronizados entre computadores. Não utilize senhas reais nem dados confidenciais.</div>
+      <div id="authAlert" class="alert alert-danger py-2 small" role="alert" hidden></div>
+      <div id="loginPane">
+        <h1 class="h5 fw-bold mb-1">Acesse sua conta</h1><p class="text-secondary small mb-4">Entre com o e-mail e a senha cadastrados.</p>
+        <form id="loginForm">
+          <div class="mb-3"><label class="form-label" for="loginEmail">Usuário ou e-mail</label><input class="form-control" type="text" id="loginEmail" autocomplete="username" placeholder="admin ou seu e-mail" required></div>
+          <div class="mb-3"><label class="form-label" for="loginPassword">Senha</label><input class="form-control" type="password" id="loginPassword" autocomplete="current-password" required></div>
+          <button class="btn btn-primary w-100" type="submit" id="loginSubmit"><i class="bi bi-box-arrow-in-right me-1"></i> Entrar</button>
+        </form>
+        <p class="text-secondary small text-center mt-4 mb-0">Sua empresa já possui um código de convite? <a href="#" class="auth-toggle" id="showSignup">Criar usuário</a></p>
+      </div>
+      <div id="signupPane" hidden>
+        <h1 class="h5 fw-bold mb-1">Cadastrar usuário</h1><p class="text-secondary small mb-4">Use o código fornecido pelo administrador da empresa.</p>
+        <form id="signupForm">
+          <div class="mb-3"><label class="form-label" for="signupName">Nome completo</label><input class="form-control" id="signupName" maxlength="100" autocomplete="name" required></div>
+          <div class="mb-3"><label class="form-label" for="signupCode">Código de convite</label><input class="form-control text-uppercase" id="signupCode" maxlength="20" autocomplete="off" placeholder="Ex.: A1B2C3D4E5" required></div>
+          <div class="mb-3"><label class="form-label" for="signupEmail">E-mail</label><input class="form-control" type="email" id="signupEmail" autocomplete="email" required></div>
+          <div class="mb-3"><label class="form-label" for="signupPassword">Senha</label><input class="form-control" type="password" id="signupPassword" minlength="8" autocomplete="new-password" required><div class="form-text">Mínimo de 8 caracteres.</div></div>
+          <button class="btn btn-primary w-100" type="submit" id="signupSubmit"><i class="bi bi-person-plus me-1"></i> Criar usuário</button>
+        </form>
+        <p class="text-secondary small text-center mt-4 mb-0">Já possui uma conta? <a href="#" class="auth-toggle" id="showLogin">Voltar ao login</a></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- APLICAÇÃO -->
+  <div id="appScreen" hidden>
+    <nav class="navbar app-navbar sticky-top">
+      <div class="container-fluid px-3 px-md-4 flex-wrap gap-2">
+        <a class="navbar-brand d-flex align-items-center gap-2 m-0 text-light" href="#"><span class="brand-mark"><i class="bi bi-kanban-fill"></i></span><span class="brand-name">TaskBoard</span><span class="badge rounded-pill text-bg-dark border border-secondary ms-1 fw-normal">Multiempresa</span></a>
+        <div class="d-flex align-items-center navbar-actions flex-wrap justify-content-end">
+          <span class="small text-secondary d-none d-lg-inline me-1" id="userIdentity"></span>
+          <button class="btn btn-sm btn-outline-secondary" id="adminCompaniesBtn" hidden><i class="bi bi-buildings me-md-1"></i><span class="action-label">Empresas</span></button>
+          <button class="btn btn-sm btn-outline-secondary" id="inviteUserBtn" hidden><i class="bi bi-person-plus me-md-1"></i><span class="action-label">Convidar usuário</span></button>
+          <button class="btn btn-sm btn-outline-secondary" id="exportBtn" hidden title="Exportar quadro JSON"><i class="bi bi-download me-md-1"></i><span class="action-label">Exportar</span></button>
+          <button class="btn btn-sm btn-outline-secondary" id="importBtn" hidden title="Importar quadro JSON"><i class="bi bi-upload me-md-1"></i><span class="action-label">Importar</span></button>
+          <button class="btn btn-sm btn-quiet" id="resetBtn" hidden title="Restaurar quadro padrão"><i class="bi bi-arrow-counterclockwise me-md-1"></i><span class="action-label">Resetar</span></button>
+          <button class="btn btn-sm btn-quiet" id="logoutBtn" title="Sair"><i class="bi bi-box-arrow-right me-md-1"></i><span class="action-label">Sair</span></button>
+          <input type="file" id="importFile" accept=".json,application/json" class="d-none">
+        </div>
+      </div>
+    </nav>
+
+    <main class="page-shell">
+      <section id="adminSection" hidden>
+        <div class="eyebrow">Administração central</div><h1 class="page-title">Empresas cadastradas</h1><p class="page-subtitle">Cadastre empresas e compartilhe o código inicial com o responsável de cada uma.</p>
+        <div class="admin-panel mt-4">
+          <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3"><div><h2 class="mb-1">Gerenciar empresas</h2><p class="text-secondary small mb-0">O primeiro cadastro com o código inicial será o administrador da empresa.</p></div><button class="btn btn-primary btn-sm" id="newCompanyBtn"><i class="bi bi-plus-lg me-1"></i> Cadastrar empresa</button></div>
+          <div class="company-table-wrap"><table class="table table-dark table-hover align-middle mb-0"><thead><tr><th>Empresa</th><th>Status</th><th>Código inicial</th><th>Cadastro</th></tr></thead><tbody id="companiesTable"><tr><td colspan="4" class="text-secondary">Carregando...</td></tr></tbody></table></div>
+        </div>
+      </section>
+
+      <section id="companyWelcome" hidden>
+        <div class="eyebrow">Espaço de trabalho</div><h1 class="page-title">Bem-vindo ao TaskBoard</h1><p class="page-subtitle">Sua conta ainda não está vinculada a uma empresa. Peça ao administrador central para verificar seu cadastro.</p>
+      </section>
+
+      <section id="boardSection" hidden>
+        <header><div class="eyebrow" id="companyEyebrow">Espaço de trabalho</div><h1 class="page-title" id="boardTitle">Meu quadro</h1><p class="page-subtitle">Organize tarefas, atribua responsáveis e acompanhe o andamento da equipe.</p></header>
+        <div class="board-toolbar" aria-label="Ações do quadro">
+          <button class="btn btn-primary btn-sm" id="newCardBtn"><i class="bi bi-plus-lg me-1"></i> Novo cartão</button>
+          <button class="btn btn-outline-secondary btn-sm" id="newColumnBtn"><i class="bi bi-layout-three-columns me-1"></i> Nova coluna</button>
+          <span class="toolbar-spacer"></span><span class="board-hint"><i class="bi bi-arrows-move me-1"></i> Arraste os cartões para reorganizar</span>
+          <span class="save-status" id="saveStatus"><i class="bi bi-cloud-check"></i><span>Sincronizado</span></span>
+        </div>
+        <section class="board-scroller" aria-label="Quadro Kanban"><div class="board-grid" id="board" aria-live="polite"></div></section>
+        <p class="footer-note"><i class="bi bi-shield-check me-1"></i> Os dados ficam salvos localmente neste navegador. As empresas têm quadros separados neste mesmo armazenamento.</p>
+      </section>
+    </main>
+  </div>
+
+  <!-- Modal cartão: usado para criação e edição -->
+  <div class="modal fade" id="cardModal" tabindex="-1" aria-labelledby="cardModalTitle" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><form class="modal-content" id="cardForm">
+    <div class="modal-header"><h2 class="modal-title" id="cardModalTitle"><i class="bi bi-card-text me-2 text-primary"></i>Novo cartão</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button></div>
+    <div class="modal-body">
+      <div class="mb-3"><label for="cardTitle" class="form-label">Título <span class="text-danger">*</span></label><input class="form-control" id="cardTitle" maxlength="120" placeholder="Ex.: Implementar tela de login" required></div>
+      <div class="mb-3"><label for="cardDescription" class="form-label">Descrição</label><textarea class="form-control" id="cardDescription" rows="4" maxlength="1000" placeholder="Detalhes, observações ou critérios de conclusão..."></textarea></div>
+      <div class="mb-3"><label for="cardColumn" class="form-label">Coluna</label><select class="form-select" id="cardColumn" required></select></div>
+      <div><label for="cardAssignee" class="form-label">Responsável</label><select class="form-select" id="cardAssignee"><option value="">Não atribuído</option></select><div class="form-text">Somente usuários da sua empresa aparecem nesta lista.</div></div>
+    </div>
+    <div class="modal-footer"><button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-primary btn-sm" id="saveCardBtn">Salvar cartão</button></div>
+  </form></div></div>
+
+  <!-- Modal coluna -->
+  <div class="modal fade" id="columnModal" tabindex="-1" aria-labelledby="columnModalTitle" aria-hidden="true"><div class="modal-dialog modal-dialog-centered modal-sm"><form class="modal-content" id="columnForm">
+    <div class="modal-header"><h2 class="modal-title" id="columnModalTitle"><i class="bi bi-columns-gap me-2 text-primary"></i>Nova coluna</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button></div>
+    <div class="modal-body"><label for="columnName" class="form-label">Nome da coluna</label><input class="form-control" id="columnName" maxlength="50" placeholder="Ex.: Em revisão" required><div class="form-text">Use um nome curto e fácil de identificar.</div></div>
+    <div class="modal-footer"><button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-primary btn-sm">Criar coluna</button></div>
+  </form></div></div>
+
+  <!-- Modal administração de empresas -->
+  <div class="modal fade" id="companyModal" tabindex="-1" aria-labelledby="companyModalTitle" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><form class="modal-content" id="companyForm">
+    <div class="modal-header"><h2 class="modal-title" id="companyModalTitle"><i class="bi bi-buildings me-2 text-primary"></i>Cadastrar empresa</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button></div>
+    <div class="modal-body"><label for="companyName" class="form-label">Nome da empresa</label><input class="form-control" id="companyName" maxlength="120" placeholder="Ex.: Empresa Exemplo Ltda." required><div class="form-text">Será criado um quadro padrão automaticamente.</div><div id="createdCompanyCode" class="alert alert-custom mt-3 mb-0" hidden></div></div>
+    <div class="modal-footer"><button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Fechar</button><button type="submit" class="btn btn-primary btn-sm" id="createCompanySubmit">Cadastrar empresa</button></div>
+  </form></div></div>
+
+  <!-- Modal convite de equipe -->
+  <div class="modal fade" id="inviteModal" tabindex="-1" aria-labelledby="inviteModalTitle" aria-hidden="true"><div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content">
+    <div class="modal-header"><h2 class="modal-title" id="inviteModalTitle"><i class="bi bi-person-plus me-2 text-primary"></i>Convidar usuário</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button></div>
+    <div class="modal-body"><p class="small text-secondary">Gere um código de uso único e envie ao novo integrante da equipe.</p><div id="inviteCodeBox" class="alert alert-custom mb-0" hidden><div class="small text-secondary mb-1">Código de convite</div><div class="d-flex align-items-center justify-content-between gap-2"><span class="invite-code fs-5" id="inviteCodeText"></span><button type="button" class="btn btn-outline-secondary btn-sm" id="copyInviteBtn" title="Copiar código"><i class="bi bi-clipboard"></i></button></div><div class="small text-secondary mt-2">O usuário deve selecionar “Criar usuário” na tela de login e informar este código.</div></div></div>
+    <div class="modal-footer"><button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Fechar</button><button type="button" class="btn btn-primary btn-sm" id="generateInviteBtn">Gerar código</button></div>
+  </div></div></div>
+
+  <div class="toast-container position-fixed top-0 end-0 p-3"><div id="feedbackToast" class="toast app-toast" role="status" aria-live="polite" aria-atomic="true"><div class="toast-header"><i class="bi bi-info-circle-fill text-primary me-2"></i><strong class="me-auto">TaskBoard</strong><small>Agora</small><button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Fechar"></button></div><div class="toast-body" id="toastMessage">Operação concluída.</div></div></div>
+
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    'use strict';
+
+    // TaskBoard estático: todos os dados ficam no localStorage deste navegador.
+    // Não existe servidor, sincronização entre dispositivos ou autenticação segura.
+    const STORAGE_KEY = 'taskboard.local.database.v1';
+    const SESSION_KEY = 'taskboard.local.session.v1';
+
+    const COLUMN_COLORS = ['#58a6ff','#d29922','#3fb950','#bc8cff','#f778ba','#39c5cf','#f0883e'];
+    const DEFAULT_COLUMNS = [
+      {name:'A Fazer',color:'#58a6ff'},
+      {name:'Em Andamento',color:'#d29922'},
+      {name:'Concluído',color:'#3fb950'}
+    ];
+    let database = null;
+    let currentUser = null;
+    let currentProfile = null;
+    let currentCompany = null;
+    let boardState = {columns:[],cards:[]};
+    let companyUsers = [];
+    let draggedCardId = null;
+    let editingCardId = null;
+    let cardModal, columnModal, companyModal, inviteModal, feedbackToast;
+
+    const $ = window.jQuery;
+    const $id = (id) => document.getElementById(id);
+
+    function showAuth(){ $('#appScreen').prop('hidden',true); $('#authScreen').prop('hidden',false); }
+    function showAuthError(message){ $('#authAlert').text(message).prop('hidden',false); }
+    function clearAuthError(){ $('#authAlert').text('').prop('hidden',true); }
+    function showToast(message,isError=false){
+      $('#toastMessage').text(message);
+      const icon=$('#feedbackToast .toast-header i');
+      icon.toggleClass('bi-info-circle-fill text-primary',!isError).toggleClass('bi-exclamation-triangle-fill text-danger',isError);
+      feedbackToast.show();
+    }
+    function setSaveStatus(message,isError=false){
+      $('#saveStatus').toggleClass('error',isError);
+      $('#saveStatus i').attr('class',isError?'bi bi-exclamation-circle':'bi bi-check-circle');
+      $('#saveStatus span').text(message);
+    }
+    function setBusy(button,busy,label){
+      const $button=$(button);
+      if(busy){$button.data('old-label',$button.html()).prop('disabled',true).html('<span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>'+label);}
+      else{$button.prop('disabled',false);const old=$button.data('old-label');if(old)$button.html(old);}
+    }
+    function friendlyError(error){return error?.message||'Ocorreu um erro inesperado.';}
+    function makeId(){
+      if(window.crypto?.randomUUID)return window.crypto.randomUUID();
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16);});
+    }
+    function makeCode(){
+      const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      const bytes=new Uint8Array(10);
+      if(window.crypto?.getRandomValues)window.crypto.getRandomValues(bytes);else for(let i=0;i<bytes.length;i++)bytes[i]=Math.floor(Math.random()*256);
+      return Array.from(bytes,b=>chars[b%chars.length]).join('');
+    }
+    function dateTime(value){try{return new Date(value).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});}catch(_){return '';}}
+    function normalizeEmail(value){return String(value||'').trim().toLowerCase();}
+
+    async function hashPassword(password){
+      // Hash evita gravar a senha em texto puro, mas não transforma o app estático em autenticação segura.
+      const bytes=new TextEncoder().encode(String(password));
+      if(window.crypto?.subtle){
+        const digest=await window.crypto.subtle.digest('SHA-256',bytes);
+        return Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('');
+      }
+      // Fallback para navegadores antigos/ambientes locais sem Web Crypto.
+      let hash=2166136261;
+      for(const byte of bytes){hash^=byte;hash=Math.imul(hash,16777619);}
+      return 'fallback-'+(hash>>>0).toString(16);
+    }
+
+    function defaultBoardPayload(){
+      const ids=DEFAULT_COLUMNS.map(()=>makeId());
+      const columns=DEFAULT_COLUMNS.map((c,i)=>({id:ids[i],name:c.name,color:c.color,position:i}));
+      const now=new Date().toISOString();
+      const cards=[
+        {id:makeId(),columnId:ids[0],title:'Planejar as próximas tarefas',description:'Organizar prioridades e definir o que precisa ser feito primeiro.',assignedTo:null,position:0,createdAt:now},
+        {id:makeId(),columnId:ids[0],title:'Revisar requisitos do projeto',description:'Conferir escopo, funcionalidades e critérios de entrega.',assignedTo:null,position:1,createdAt:now},
+        {id:makeId(),columnId:ids[1],title:'Desenvolver a primeira versão',description:'Implementar a estrutura principal e validar o fluxo de trabalho.',assignedTo:null,position:0,createdAt:now},
+        {id:makeId(),columnId:ids[2],title:'Criar o repositório',description:'Repositório inicial configurado e pronto para receber o projeto.',assignedTo:null,position:0,createdAt:now}
+      ];
+      return{columns,cards};
+    }
+
+    async function initializeDatabase(){
+      const raw=localStorage.getItem(STORAGE_KEY);
+      if(raw){
+        try{database=JSON.parse(raw);}catch(_){throw new Error('O banco local está inválido. Limpe os dados do site ou restaure um backup JSON.');}
+        if(!database||!Array.isArray(database.users)||!Array.isArray(database.companies)||!Array.isArray(database.invites))throw new Error('Estrutura do banco local inválida.');
+      }else{
+        const admin={id:makeId(),full_name:'Administrador central',email:'admin',password_hash:await hashPassword('admin'),role:'super_admin',company_id:null,created_at:new Date().toISOString()};
+        database={version:1,users:[admin],companies:[],invites:[],created_at:new Date().toISOString()};
+        saveDatabase();
+      }
+      // Garante a conta inicial caso o banco tenha sido criado em uma versão anterior.
+      if(!database.users.some(u=>u.role==='super_admin')){
+        database.users.push({id:makeId(),full_name:'Administrador central',email:'admin',password_hash:await hashPassword('admin'),role:'super_admin',company_id:null,created_at:new Date().toISOString()});
+        saveDatabase();
+      }
+    }
+
+    function saveDatabase(){
+      try{localStorage.setItem(STORAGE_KEY,JSON.stringify(database));setSaveStatus('Salvo neste navegador');}
+      catch(error){setSaveStatus('Erro ao salvar',true);throw new Error('Não foi possível gravar no armazenamento deste navegador. Verifique o espaço disponível ou as permissões do site.');}
+    }
+
+    function loadProfile(user){
+      const stored=database.users.find(u=>u.id===user.id);
+      if(!stored)throw new Error('Usuário não encontrado no banco local.');
+      currentUser=stored;
+      currentProfile={id:stored.id,full_name:stored.full_name,company_id:stored.company_id,role:stored.role};
+      currentCompany=stored.company_id?database.companies.find(c=>c.id===stored.company_id)||null:null;
+      if(stored.company_id&&(!currentCompany||!currentCompany.is_active))throw new Error('Esta empresa não existe ou está desativada.');
+    }
+
+    async function enterApp(user){
+      try{
+        loadProfile(user);
+        $('#authScreen').prop('hidden',true);$('#appScreen').prop('hidden',false);
+        const roleLabel=currentProfile.role==='super_admin'?'Administrador central':currentProfile.role==='company_admin'?'Administrador da empresa':'Membro';
+        $('#userIdentity').text(`${currentProfile.full_name||currentUser.email} · ${roleLabel}`);
+        const isSuper=currentProfile.role==='super_admin';
+        const hasCompany=!!currentProfile.company_id;
+        $('#adminCompaniesBtn').prop('hidden',!isSuper);
+        $('#inviteUserBtn').prop('hidden',!(hasCompany&&currentProfile.role==='company_admin'));
+        $('#adminSection').prop('hidden',!isSuper);
+        $('#companyWelcome').prop('hidden',isSuper||hasCompany);
+        $('#boardSection').prop('hidden',!hasCompany);
+        $('#exportBtn,#importBtn,#resetBtn').prop('hidden',!hasCompany);
+        if(hasCompany){
+          $('#companyEyebrow').text(currentCompany.name);
+          $('#boardTitle').text('Quadro da empresa');
+          loadBoard();
+        }else if(isSuper){loadCompanies();}
+        sessionStorage.setItem(SESSION_KEY,currentUser.id);
+      }catch(error){console.error(error);sessionStorage.removeItem(SESSION_KEY);currentUser=null;currentProfile=null;currentCompany=null;showAuth();showAuthError(friendlyError(error));}
+    }
+
+    function loadBoard(){
+      setSaveStatus('Carregando dados locais...');
+      const company=database.companies.find(c=>c.id===currentProfile.company_id);
+      if(!company)throw new Error('Empresa não encontrada.');
+      if(!company.board||!Array.isArray(company.board.columns)||!Array.isArray(company.board.cards))company.board=defaultBoardPayload();
+      boardState={columns:company.board.columns,cards:company.board.cards};
+      companyUsers=database.users.filter(u=>u.company_id===company.id).map(u=>({id:u.id,full_name:u.full_name}));
+      renderBoard();refreshCardSelects();setSaveStatus('Salvo neste navegador');
+    }
+
+    function persistBoard(){
+      const company=database.companies.find(c=>c.id===currentProfile?.company_id);
+      if(!company)throw new Error('Não foi possível localizar a empresa atual.');
+      company.board={columns:boardState.columns,cards:boardState.cards};
+      company.updated_at=new Date().toISOString();
+      saveDatabase();
+    }
+
+    function renderBoard(){
+      const $board=$('#board').empty();
+      boardState.columns.forEach(column=>{
+        const cards=boardState.cards.filter(card=>card.columnId===column.id).sort((a,b)=>(a.position??0)-(b.position??0));
+        const $column=$('<section>',{class:'kanban-column','data-column-id':column.id,'aria-label':`Coluna ${column.name}`});
+        const $header=$('<div>',{class:'column-header'}).append(
+          $('<span>',{class:'column-dot',css:{backgroundColor:column.color}}),
+          $('<span>',{class:'column-name',text:column.name,title:column.name}),
+          $('<span>',{class:'column-count',text:cards.length,title:`${cards.length} cartões`})
+        );
+        const $actions=$('<div>',{class:'column-header-actions'}).append(
+          $('<button>',{type:'button',class:'btn btn-sm btn-quiet delete-column',title:`Excluir coluna ${column.name}`,'aria-label':`Excluir coluna ${column.name}`}).attr('data-column-id',column.id).append($('<i>',{class:'bi bi-trash3'}))
+        );
+        $header.append($actions);$column.append($header);
+        const $list=$('<div>',{class:'card-list','data-column-id':column.id,role:'list','aria-label':`Cartões em ${column.name}`});
+        if(!cards.length)$list.append($('<div>',{class:'empty-column',text:'Solte um cartão aqui ou adicione uma nova tarefa.'}));
+        cards.forEach(card=>{
+          const $card=$('<article>',{class:'kanban-card',draggable:'true','data-card-id':card.id,role:'listitem',tabindex:'0'});
+          $card.append($('<h3>',{class:'card-title',text:card.title}));
+          if(card.description)$card.append($('<p>',{class:'card-description',text:card.description}));
+          const $actions=$('<div>',{class:'card-actions'}).append(
+            $('<button>',{type:'button',class:'card-action edit-card',title:'Editar cartão','aria-label':`Editar cartão ${card.title}`}).attr('data-card-id',card.id).append($('<i>',{class:'bi bi-pencil'})),
+            $('<button>',{type:'button',class:'card-action delete-card',title:'Excluir cartão','aria-label':`Excluir cartão ${card.title}`}).attr('data-card-id',card.id).append($('<i>',{class:'bi bi-x-lg'}))
+          );
+          $card.append($actions);
+          const assignee=companyUsers.find(u=>u.id===card.assignedTo);
+          const $meta=$('<div>',{class:'card-footer-meta'}).append($('<i>',{class:'bi bi-clock'}),$('<span>',{text:dateTime(card.createdAt)}));
+          if(assignee)$meta.append($('<span>',{class:'assignee-pill'}).append($('<i>',{class:'bi bi-person'}),$('<span>',{text:assignee.full_name||'Usuário'})));
+          else $meta.append($('<span>',{class:'assignee-pill'}).append($('<i>',{class:'bi bi-person-dash'}),$('<span>',{text:'Não atribuído'})));
+          $card.append($meta);$list.append($card);
+        });
+        $column.append($list);
+        $column.append($('<button>',{type:'button',class:'column-add-card add-card-to-column','data-column-id':column.id}).append($('<i>',{class:'bi bi-plus-lg'}),$('<span>',{text:'Adicionar cartão'})));
+        $board.append($column);
+      });
+      $board.append($('<button>',{type:'button',class:'add-column-tile',id:'addColumnTile'}).append($('<i>',{class:'bi bi-plus-circle'}),$('<span>',{text:'Adicionar outra coluna'})));
+      bindDragAndDrop();
+    }
+
+    function refreshCardSelects(selectedColumn=null,selectedAssignee=null){
+      const $column=$('#cardColumn').empty();
+      boardState.columns.forEach(c=>$column.append($('<option>',{value:c.id,text:c.name})));
+      if(selectedColumn)$column.val(selectedColumn);
+      const $assignee=$('#cardAssignee').empty().append($('<option>',{value:'',text:'Não atribuído'}));
+      companyUsers.forEach(user=>$assignee.append($('<option>',{value:user.id,text:user.full_name||'Usuário sem nome'})));
+      if(selectedAssignee)$assignee.val(selectedAssignee);
+    }
+
+    function openCardModal(card=null,columnId=null){
+      editingCardId=card?.id||null;$('#cardForm')[0].reset();
+      refreshCardSelects(card?.columnId||columnId||boardState.columns[0]?.id,card?.assignedTo||null);
+      $('#cardTitle').val(card?.title||'');$('#cardDescription').val(card?.description||'');
+      $('#cardModalTitle').html(`<i class="bi bi-card-text me-2 text-primary"></i>${card?'Editar cartão':'Novo cartão'}`);
+      $('#saveCardBtn').text(card?'Salvar alterações':'Criar cartão');
+      cardModal.show();window.setTimeout(()=>$id('cardTitle').focus(),160);
+    }
+
+    function saveCard(event){
+      event.preventDefault();
+      const title=$('#cardTitle').val().trim(),description=$('#cardDescription').val().trim(),columnId=$('#cardColumn').val(),assignedTo=$('#cardAssignee').val()||null;
+      if(!title||!boardState.columns.some(c=>c.id===columnId))return;
+      if(assignedTo&&!companyUsers.some(u=>u.id===assignedTo)){showToast('Selecione um usuário válido desta empresa.',true);return;}
+      setBusy('#saveCardBtn',true,'Salvando...');
+      try{
+        if(editingCardId){
+          const card=boardState.cards.find(c=>c.id===editingCardId);if(!card)throw new Error('Cartão não encontrado.');
+          Object.assign(card,{title,description,columnId,assignedTo,updatedAt:new Date().toISOString()});
+        }else{
+          const position=boardState.cards.filter(c=>c.columnId===columnId).length;
+          boardState.cards.push({id:makeId(),columnId,title,description,assignedTo,position,createdAt:new Date().toISOString()});
+        }
+        normalizePositions();persistBoard();cardModal.hide();renderBoard();showToast(editingCardId?'Cartão atualizado.':'Cartão criado.');
+      }catch(error){console.error(error);showToast(friendlyError(error),true);setSaveStatus('Falha ao salvar',true);}
+      finally{setBusy('#saveCardBtn',false);}
+    }
+
+    function createColumn(event){
+      event.preventDefault();const name=$('#columnName').val().trim();if(!name)return;
+      try{boardState.columns.push({id:makeId(),name,color:COLUMN_COLORS[boardState.columns.length%COLUMN_COLORS.length],position:boardState.columns.length});persistBoard();columnModal.hide();renderBoard();showToast('Coluna criada.');}
+      catch(error){console.error(error);showToast(friendlyError(error),true);}
+    }
+
+    function deleteCard(cardId){
+      const card=boardState.cards.find(c=>c.id===cardId);if(!card)return;
+      if(!window.confirm(`Deseja realmente excluir o cartão "${card.title}"?`))return;
+      try{boardState.cards=boardState.cards.filter(c=>c.id!==cardId);normalizePositions();persistBoard();renderBoard();showToast('Cartão excluído.');}
+      catch(error){console.error(error);showToast(friendlyError(error),true);}
+    }
+
+    function deleteColumn(columnId){
+      const column=boardState.columns.find(c=>c.id===columnId);if(!column)return;
+      if(boardState.columns.length===1){showToast('O quadro precisa manter pelo menos uma coluna.',true);return;}
+      const count=boardState.cards.filter(c=>c.columnId===columnId).length;
+      const detail=count===1?'1 cartão vinculado será removido.':`${count} cartões vinculados serão removidos.`;
+      if(!window.confirm(`Excluir a coluna "${column.name}"?\n\n${detail}\nEssa ação não poderá ser desfeita.`))return;
+      try{boardState.columns=boardState.columns.filter(c=>c.id!==columnId);boardState.cards=boardState.cards.filter(c=>c.columnId!==columnId);normalizePositions();persistBoard();renderBoard();showToast('Coluna e cartões vinculados removidos.');}
+      catch(error){console.error(error);showToast(friendlyError(error),true);}
+    }
+
+    function normalizePositions(){
+      boardState.columns.forEach((c,i)=>c.position=i);
+      boardState.columns.forEach(column=>boardState.cards.filter(c=>c.columnId===column.id).forEach((card,i)=>card.position=i));
+    }
+
+    function bindDragAndDrop(){
+      const board=$id('board');
+      board.querySelectorAll('.kanban-card').forEach(cardElement=>{
+        cardElement.addEventListener('dragstart',event=>{draggedCardId=cardElement.dataset.cardId;cardElement.classList.add('dragging');event.dataTransfer.effectAllowed='move';event.dataTransfer.setData('text/plain',draggedCardId);});
+        cardElement.addEventListener('dragend',()=>{draggedCardId=null;board.querySelectorAll('.dragging,.drag-before,.drag-after').forEach(el=>el.classList.remove('dragging','drag-before','drag-after'));board.querySelectorAll('.drag-active,.is-over').forEach(el=>el.classList.remove('drag-active','is-over'));});
+      });
+      board.querySelectorAll('.card-list').forEach(list=>{
+        list.addEventListener('dragover',event=>{
+          if(!draggedCardId)return;event.preventDefault();event.dataTransfer.dropEffect='move';list.classList.add('drag-active');list.closest('.kanban-column').classList.add('is-over');
+          const dragged=board.querySelector(`[data-card-id="${CSS.escape(draggedCardId)}"]`);if(!dragged)return;
+          const after=getCardAfterPointer(list,event.clientY,dragged);board.querySelectorAll('.drag-before,.drag-after').forEach(el=>el.classList.remove('drag-before','drag-after'));
+          if(after){const rect=after.getBoundingClientRect(),insertAfter=event.clientY>rect.top+rect.height/2;after.classList.add(insertAfter?'drag-after':'drag-before');list.insertBefore(dragged,insertAfter?after.nextSibling:after);}else list.appendChild(dragged);
+          list.querySelector('.empty-column')?.remove();
+        });
+        list.addEventListener('dragleave',event=>{if(!list.contains(event.relatedTarget)){list.classList.remove('drag-active');list.closest('.kanban-column').classList.remove('is-over');}});
+        list.addEventListener('drop',event=>{if(!draggedCardId)return;event.preventDefault();try{persistCardOrder();showToast('Cartão movido.');}catch(error){console.error(error);showToast('Não foi possível salvar a nova posição.',true);renderBoard();}});
+      });
+    }
+    function getCardAfterPointer(list,pointerY,dragged){
+      const cards=[...list.querySelectorAll('.kanban-card:not(.dragging)')];
+      return cards.reduce((closest,child)=>{const box=child.getBoundingClientRect(),offset=pointerY-box.top-box.height/2;if(offset<0&&offset>closest.offset)return{offset,element:child};return closest;},{offset:Number.NEGATIVE_INFINITY,element:null}).element;
+    }
+    function persistCardOrder(){
+      const updates=[];document.querySelectorAll('#board .kanban-column').forEach(column=>{
+        const columnId=column.dataset.columnId;column.querySelectorAll('.card-list > .kanban-card').forEach((el,index)=>updates.push({id:el.dataset.cardId,columnId,position:index}));
+      });
+      updates.forEach(item=>{const card=boardState.cards.find(c=>c.id===item.id);if(card){card.columnId=item.columnId;card.position=item.position;card.updatedAt=new Date().toISOString();}});
+      normalizePositions();persistBoard();renderBoard();
+    }
+
+    function replaceBoard(columns,cards){
+      boardState={columns,cards};normalizePositions();persistBoard();renderBoard();refreshCardSelects();
+    }
+    function validateImport(input){
+      if(!input||typeof input!=='object'||!Array.isArray(input.columns)||!Array.isArray(input.cards))throw new Error('O arquivo não contém um quadro JSON válido.');
+      if(input.columns.length<1||input.columns.length>50||input.cards.length>1000)throw new Error('O quadro deve ter de 1 a 50 colunas e no máximo 1.000 cartões.');
+      const map=new Map(),columns=input.columns.map((c,i)=>{
+        if(!c||typeof c.name!=='string'||!c.name.trim())throw new Error('Existe uma coluna sem nome válido.');
+        const oldId=String(c.id??`col-${i}`),id=makeId();if(map.has(oldId))throw new Error('Existem identificadores de coluna duplicados.');map.set(oldId,id);
+        return{id,name:c.name.trim().slice(0,50),color:/^#[0-9a-fA-F]{6}$/.test(c.color||'')?c.color:COLUMN_COLORS[i%COLUMN_COLORS.length],position:i};
+      });
+      const cards=input.cards.map((c,i)=>{
+        if(!c||typeof c.title!=='string'||!c.title.trim())throw new Error('Existe um cartão sem título válido.');
+        const oldColumn=String(c.columnId??c.column_id??'');if(!map.has(oldColumn))throw new Error(`O cartão "${c.title}" aponta para uma coluna inexistente.`);
+        const userId=c.assignedTo||c.assigned_to||null;
+        return{id:makeId(),columnId:map.get(oldColumn),title:c.title.trim().slice(0,120),description:String(c.description||'').slice(0,1000),assignedTo:companyUsers.some(u=>u.id===userId)?userId:null,position:i,createdAt:new Date().toISOString()};
+      });
+      return{columns,cards};
+    }
+
+    function loadCompanies(){
+      const companies=[...database.companies].sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at)));
+      const $body=$('#companiesTable').empty();
+      if(!companies.length){$body.append($('<tr>').append($('<td>',{colspan:4,class:'text-secondary',text:'Nenhuma empresa cadastrada.'})));return;}
+      companies.forEach(company=>{
+        const $code=company.invite_code?$('<span>',{class:'invite-code',text:company.invite_code}):$('<span>',{class:'text-secondary small',text:'Já utilizado'});
+        const $row=$('<tr>').append(
+          $('<td>',{class:'fw-semibold',text:company.name}),
+          $('<td>').append($('<span>',{class:`badge ${company.is_active?'text-bg-success':'text-bg-secondary'}`,text:company.is_active?'Ativa':'Inativa'})),
+          $('<td>').append($code),
+          $('<td>',{class:'text-secondary small',text:dateTime(company.created_at)})
+        );$body.append($row);
+      });
+    }
+
+    function createCompany(event){
+      event.preventDefault();const name=$('#companyName').val().trim();if(!name)return;
+      setBusy('#createCompanySubmit',true,'Cadastrando...');
+      try{
+        const company={id:makeId(),name,is_active:true,invite_code:makeCode(),created_at:new Date().toISOString(),board:defaultBoardPayload()};
+        database.companies.push(company);saveDatabase();
+        $('#createdCompanyCode').html(`<strong>Empresa cadastrada!</strong><br>Compartilhe este código com o responsável da empresa: <span class="invite-code">${company.invite_code}</span><br><small>O primeiro usuário que utilizar o código será administrador da empresa. Copie-o agora; ele será consumido no primeiro cadastro.</small>`).prop('hidden',false);
+        $('#companyName').val('');loadCompanies();showToast('Empresa cadastrada com sucesso.');
+      }catch(error){console.error(error);showToast(friendlyError(error),true);}
+      finally{setBusy('#createCompanySubmit',false);}
+    }
+
+    function generateInvite(){
+      try{
+        const code=makeCode();database.invites.push({code,company_id:currentCompany.id,role:'member',created_at:new Date().toISOString(),used_at:null});saveDatabase();
+        $('#inviteCodeText').text(code);$('#inviteCodeBox').prop('hidden',false);showToast('Código de convite gerado.');
+      }catch(error){console.error(error);showToast(friendlyError(error),true);}
+    }
+    async function copyInvite(){
+      const value=$('#inviteCodeText').text();if(!value)return;
+      try{await navigator.clipboard.writeText(value);showToast('Código copiado.');}
+      catch(_){window.prompt('Copie o código de convite:',value);}
+    }
+
+    // Autenticação local (não é adequada para proteger informações confidenciais).
+    $('#showSignup').on('click',e=>{e.preventDefault();clearAuthError();$('#loginPane').prop('hidden',true);$('#signupPane').prop('hidden',false);});
+    $('#showLogin').on('click',e=>{e.preventDefault();clearAuthError();$('#signupPane').prop('hidden',true);$('#loginPane').prop('hidden',false);});
+    $('#loginForm').on('submit',async function(e){
+      e.preventDefault();clearAuthError();setBusy('#loginSubmit',true,'Entrando...');
+      try{
+        const login=normalizeEmail($('#loginEmail').val()),passwordHash=await hashPassword($('#loginPassword').val());
+        const user=database.users.find(u=>normalizeEmail(u.email)===login&&u.password_hash===passwordHash);
+        if(!user)throw new Error('Usuário ou senha incorretos.');
+        await enterApp(user);
+      }catch(error){showAuthError(friendlyError(error));}
+      finally{setBusy('#loginSubmit',false);}
+    });
+    $('#signupForm').on('submit',async function(e){
+      e.preventDefault();clearAuthError();const name=$('#signupName').val().trim(),code=$('#signupCode').val().trim().toUpperCase(),email=normalizeEmail($('#signupEmail').val()),password=$('#signupPassword').val();
+      if(password.length<8){showAuthError('A senha precisa ter pelo menos 8 caracteres.');return;}
+      if(database.users.some(u=>normalizeEmail(u.email)===email)){showAuthError('Este e-mail/usuário já possui cadastro neste navegador.');return;}
+      setBusy('#signupSubmit',true,'Criando usuário...');
+      try{
+        let company=null,role='member',invite=null;
+        const initialCompany=database.companies.find(c=>c.invite_code===code);
+        if(initialCompany){company=initialCompany;role='company_admin';}
+        else{
+          invite=database.invites.find(i=>i.code===code&&!i.used_at);
+          if(!invite)throw new Error('Código de convite inválido ou já utilizado.');
+          company=database.companies.find(c=>c.id===invite.company_id);
+          if(!company||!company.is_active)throw new Error('A empresa do convite está indisponível.');
+          role=invite.role||'member';
+        }
+        if(!company)throw new Error('Empresa não encontrada para este convite.');
+        const user={id:makeId(),full_name:name,email,password_hash:await hashPassword(password),role,company_id:company.id,created_at:new Date().toISOString()};
+        database.users.push(user);
+        if(initialCompany)company.invite_code=null;
+        if(invite)invite.used_at=new Date().toISOString();
+        saveDatabase();$('#signupForm')[0].reset();showToast('Usuário cadastrado com sucesso.');await enterApp(user);
+      }catch(error){showAuthError(friendlyError(error));}
+      finally{setBusy('#signupSubmit',false);}
+    });
+    $('#logoutBtn').on('click',()=>{sessionStorage.removeItem(SESSION_KEY);currentUser=null;currentProfile=null;currentCompany=null;showAuth();clearAuthError();});
+
+    // Eventos do quadro.
+    $('#newCardBtn').on('click',()=>openCardModal());
+    $('#newColumnBtn').on('click',()=>{$('#columnForm')[0].reset();columnModal.show();});
+    $('#board').on('click','.add-card-to-column',function(){openCardModal(null,$(this).attr('data-column-id'));});
+    $('#board').on('click','.edit-card',function(){const card=boardState.cards.find(c=>c.id===$(this).attr('data-card-id'));if(card)openCardModal(card);});
+    $('#board').on('click','.delete-card',function(){deleteCard($(this).attr('data-card-id'));});
+    $('#board').on('click','.delete-column',function(){deleteColumn($(this).attr('data-column-id'));});
+    $('#cardForm').on('submit',saveCard);$('#columnForm').on('submit',createColumn);
+    $('#board').on('click','#addColumnTile',()=>{$('#columnForm')[0].reset();columnModal.show();});
+    $('#resetBtn').on('click',()=>{
+      if(!window.confirm('Restaurar o quadro padrão?\n\nTodas as colunas e tarefas atuais desta empresa serão substituídas pelos dados iniciais.'))return;
+      try{const payload=defaultBoardPayload();replaceBoard(payload.columns,payload.cards);showToast('Quadro restaurado.');}
+      catch(error){console.error(error);showToast(friendlyError(error),true);}
+    });
+    $('#exportBtn').on('click',()=>{
+      const json=JSON.stringify({version:1,exportedAt:new Date().toISOString(),columns:boardState.columns.map(c=>({id:c.id,name:c.name,color:c.color})),cards:boardState.cards.map(c=>({id:c.id,columnId:c.columnId,title:c.title,description:c.description,assignedTo:c.assignedTo,createdAt:c.createdAt}))},null,2);
+      const blob=new Blob([json],{type:'application/json;charset=utf-8'}),url=URL.createObjectURL(blob),link=document.createElement('a');
+      link.href=url;link.download=`taskboard-${(currentCompany?.name||'empresa').toLowerCase().replace(/[^a-z0-9]+/g,'-')}-${new Date().toISOString().slice(0,10)}.json`;document.body.appendChild(link);link.click();link.remove();URL.revokeObjectURL(url);showToast('Backup JSON exportado.');
+    });
+    $('#importBtn').on('click',()=>$('#importFile').trigger('click'));
+    $('#importFile').on('change',async function(){
+      const file=this.files?.[0];if(!file)return;
+      try{
+        if(file.size>5*1024*1024)throw new Error('O arquivo excede o limite de 5 MB.');
+        const parsed=JSON.parse(await file.text()),payload=validateImport(parsed);
+        if(!window.confirm(`Importar "${file.name}"?\n\nO quadro atual da empresa será substituído.`))return;
+        replaceBoard(payload.columns,payload.cards);showToast('Quadro importado com sucesso.');
+      }catch(error){console.error(error);showToast(error.message||'Não foi possível importar o JSON.',true);}
+      finally{this.value='';}
+    });
+
+    // Administração local de empresas e membros.
+    $('#adminCompaniesBtn').on('click',()=>{$id('adminSection').scrollIntoView({behavior:'smooth',block:'start'});});
+    $('#newCompanyBtn').on('click',()=>{$('#companyForm')[0].reset();$('#createdCompanyCode').prop('hidden',true).empty();companyModal.show();});
+    $('#companyForm').on('submit',createCompany);
+    $('#inviteUserBtn').on('click',()=>{$('#inviteCodeBox').prop('hidden',true);$('#inviteCodeText').text('');inviteModal.show();});
+    $('#generateInviteBtn').on('click',generateInvite);$('#copyInviteBtn').on('click',copyInvite);
+
+    // Inicialização da aplicação.
+    $(async function(){
+      cardModal=bootstrap.Modal.getOrCreateInstance($id('cardModal'));
+      columnModal=bootstrap.Modal.getOrCreateInstance($id('columnModal'));
+      companyModal=bootstrap.Modal.getOrCreateInstance($id('companyModal'));
+      inviteModal=bootstrap.Modal.getOrCreateInstance($id('inviteModal'));
+      feedbackToast=bootstrap.Toast.getOrCreateInstance($id('feedbackToast'),{delay:3000});
+      try{
+        await initializeDatabase();
+        const sessionUserId=sessionStorage.getItem(SESSION_KEY);
+        const user=sessionUserId?database.users.find(u=>u.id===sessionUserId):null;
+        if(user)await enterApp(user);
+      }catch(error){console.error(error);showAuthError(friendlyError(error));}
+    });
+  </script>
+</body>
+</html>
